@@ -1,5 +1,4 @@
 from django.core.management import BaseCommand
-
 from recipes.models import Ingredient
 
 
@@ -10,4 +9,3 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         print("Delete ingredients data")
         Ingredient.objects.all().delete()
-   

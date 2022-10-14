@@ -1,8 +1,7 @@
 import csv
+
 from django.core.management import BaseCommand
-
 from recipes.models import Ingredient
-
 
 ALREDY_LOADED_ERROR_MESSAGE = """
 If you need to reload the child data from the CSV file,
