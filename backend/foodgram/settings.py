@@ -107,7 +107,7 @@ REST_FRAMEWORK = {
         'user': '10/minute',
         'anon': '5/minute',
     },
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend',],
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend', ],
 }
 
 DJOSER = {

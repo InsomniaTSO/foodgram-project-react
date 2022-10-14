@@ -9,12 +9,11 @@ from rest_framework.response import Response
 from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED,
                                    HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST)
 
-from recipes.filters import IngredientsSearchFilter, RecipeFilter
-from recipes.models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
-from recipes.serializers import (CompactRecipeSerializer,
-                                 IngredientViewSerializer,
-                                 RecipeCreateSerializer, RecipeViewSerializer,
-                                 TagViewSerializer)
+from .filters import IngredientsSearchFilter, RecipeFilter
+from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
+from .serializers import (CompactRecipeSerializer, IngredientViewSerializer,
+                          RecipeCreateSerializer, RecipeViewSerializer,
+                          TagViewSerializer)
 
 ALREADY_IN_FAVORITE = 'Вы уже подписаны.'
 SELF_FAVORITE = 'Нельзя полписаться на себя.'

@@ -3,7 +3,6 @@ from djoser.serializers import (TokenCreateSerializer, UserCreateSerializer,
                                 UserSerializer)
 from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
-
 from users.models import User
 
 FORBIDDEN_NAME = 'me'
@@ -15,29 +14,24 @@ class CustomUserSerializer(UserSerializer):
 
     class Meta:
         model = User
-        fields = (
-                  'email', 'id', 'username',
+        fields = ('email', 'id', 'username',
                   'first_name', 'last_name',
-                  'is_subscribed'
-        )
+                  'is_subscribed')
 
     def is_subscribed_user(self, obj):
         user = self.context['request'].user
         return (
             user.is_authenticated
-            and obj.subscribing.filter(user=user).exists()
-        )
+            and obj.subscribing.filter(user=user).exists())
 
 
 class SignupSerializer(UserCreateSerializer):
     """Сериализатор регистрации пользователя."""
     class Meta:
         model = User
-        fields = (
-                  'id', 'username', 'email',
+        fields = ('id', 'username', 'email',
                   'first_name', 'last_name',
-                  'password'
-        )
+                  'password')
 
     def validate_username(self, username):
         if FORBIDDEN_NAME == username.lower():

@@ -1,5 +1,5 @@
-from django_filters import FilterSet, CharFilter
-from recipes.models import Recipe, ShoppingCart, Ingredient
+from django_filters import CharFilter, FilterSet
+from recipes.models import Ingredient, Recipe, ShoppingCart
 
 
 class RecipeFilter(FilterSet):
@@ -17,28 +17,23 @@ class RecipeFilter(FilterSet):
         favorites = self.request.user.favorite.all()
         if value == '1' and not self.request.user.is_anonymous:
             return queryset.filter(
-                id__in=(favorite.recipe.id for favorite in favorites)
-                                )
+                id__in=(favorite.recipe.id for favorite in favorites))
         elif value == '0' and not self.request.user.is_anonymous:
             return queryset.exclude(
-                id__in=(favorite.recipe.id for favorite in favorites)
-                                )
+                id__in=(favorite.recipe.id for favorite in favorites))
         return Recipe.objects.none()
 
     def is_in_shopping_cart_recipe(self, queryset, name, value):
         if not value:
             return queryset
-        user_shoppingcart = (
-                ShoppingCart.objects.filter(user=self.request.user)
-            )
+        user_shoppingcart = (ShoppingCart.objects.filter(
+                             user=self.request.user))
         if value == '1' and not self.request.user.is_anonymous:
             return queryset.filter(
-                pk__in=(recipe.pk for recipe in user_shoppingcart)
-                                )
+                pk__in=(recipe.pk for recipe in user_shoppingcart))
         elif value == '0' and not self.request.user.is_anonymous:
             return queryset.exclude(
-                pk__in=(recipe.pk for recipe in user_shoppingcart)
-                        )
+                pk__in=(recipe.pk for recipe in user_shoppingcart))
         return Recipe.objects.none()
 
 

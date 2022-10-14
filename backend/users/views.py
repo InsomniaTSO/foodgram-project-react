@@ -1,19 +1,18 @@
+from django.shortcuts import get_object_or_404
 from djoser import utils
 from djoser.serializers import SetPasswordSerializer, TokenSerializer
-from django.shortcuts import get_object_or_404
 from djoser.views import TokenCreateView
+from recipes.serializers import SubscriptionsSerializer
+from recipes.views import ALREADY_IN_FAVORITE, SELF_FAVORITE
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED,
-                                   HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST)
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.pagination import LimitOffsetPagination
-from recipes.views import ALREADY_IN_FAVORITE, SELF_FAVORITE
-
-from users.models import User, Subscribe
-from users.serializers import (CustomUserSerializer, SignupSerializer)
-from recipes.serializers import SubscriptionsSerializer
+from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED,
+                                   HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST)
+from users.models import Subscribe, User
+from users.serializers import CustomUserSerializer, SignupSerializer
 
 
 class CustomTokenCreateView(TokenCreateView):

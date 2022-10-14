@@ -1,9 +1,8 @@
-from django.contrib.admin import register, display
 from django.contrib import admin
+from django.contrib.admin import display, register
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
-
-from users.models import User, Subscribe
+from users.models import Subscribe, User
 
 
 class CustomUserCreationForm(UserCreationForm):

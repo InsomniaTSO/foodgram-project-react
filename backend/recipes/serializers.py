@@ -3,12 +3,12 @@ import base64
 import webcolors
 from django.core.files.base import ContentFile
 from rest_framework import serializers
-from rest_framework.serializers import SerializerMethodField, ReadOnlyField
+from rest_framework.serializers import ReadOnlyField, SerializerMethodField
+from rest_framework.validators import UniqueTogetherValidator
 from users.models import Subscribe
 from users.serializers import CustomUserSerializer
-from rest_framework.validators import UniqueTogetherValidator
 
-from recipes.models import Ingredient, IngredientRecipe, Recipe, Tag, TagRecipe
+from .models import Ingredient, IngredientRecipe, Recipe, Tag, TagRecipe
 
 ALREDY_PUBLISHED = 'Вы уже публиковали этот рецепт.'
 COLOR_NAME = 'Для этого цвета нет имени.'
@@ -23,10 +23,10 @@ class Hex2NameColor(serializers.Field):
 
     def to_internal_value(self, data):
         try:
-            data = webcolors.hex_to_name(data)
+            webcolors.hex_to_name(data)
         except ValueError:
             raise serializers.ValidationError(COLOR_NAME)
-        return data
+        return webcolors.hex_to_name(data)
 
 
 class Base64ImageField(serializers.ImageField):
@@ -134,18 +134,15 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     def ingredients_and_tags_adding(self, recipe, ingredients, tags):
         for ingredient in ingredients:
             current_ingredient = Ingredient.objects.get(
-                id=ingredient['id']
-                )
+                id=ingredient['id'])
             IngredientRecipe.objects.create(
                 ingredient=current_ingredient,
                 recipe=recipe,
-                amount=ingredient['amount']
-                )
+                amount=ingredient['amount'])
         for tag in tags:
             current_tag = Tag.objects.get(id=int(tag))
             TagRecipe.objects.create(
-                tag=current_tag, recipe=recipe
-                )
+                tag=current_tag, recipe=recipe)
 
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')

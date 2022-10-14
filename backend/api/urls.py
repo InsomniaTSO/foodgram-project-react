@@ -1,9 +1,8 @@
 from django.urls import include, path
 from djoser.views import TokenDestroyView
+from recipes.views import IngredientViewSet, RecipeViewSet, TagViewSet
 from rest_framework.routers import DefaultRouter
 from users.views import CustomTokenCreateView, CustomUserViewSet
-from recipes.views import RecipeViewSet, IngredientViewSet, TagViewSet
-
 
 v1_router = DefaultRouter()
 v1_router.register('users', CustomUserViewSet, basename='user')
