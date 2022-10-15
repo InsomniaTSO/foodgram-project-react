@@ -1,4 +1,5 @@
 from django_filters import CharFilter, FilterSet
+from django.db.models import IntegerField, Value
 from recipes.models import Ingredient, Recipe, ShoppingCart
 
 
@@ -38,7 +39,7 @@ class RecipeFilter(FilterSet):
 
 
 class IngredientsSearchFilter(FilterSet):
-    """Поиск иенгредиентов."""
+    """Поиск иенгредиентов по имени."""
     name = CharFilter(method='searching_by_name')
 
     class Meta:
@@ -48,8 +49,16 @@ class IngredientsSearchFilter(FilterSet):
     def searching_by_name(self, queryset, name, value):
         if not value:
             return queryset
-        startswith_ingredients = (
-            queryset.filter(name__istartswith=value)
+        start_with = (
+            queryset.filter(name__istartswith=value).annotate(
+                order=Value(0, IntegerField())
+            )
         )
-        contain__ingredients = queryset.filter(name__icontains=value)
-        return (startswith_ingredients | contain__ingredients).distinct()
+        contain = (
+            queryset.filter(name__icontains=value).exclude(
+                pk__in=(ingredient.pk for ingredient in start_with)
+            ).annotate(
+                order=Value(1, IntegerField())
+            )
+        )
+        return start_with.union(contain).order_by('order')

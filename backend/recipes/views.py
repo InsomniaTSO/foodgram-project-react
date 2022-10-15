@@ -1,4 +1,8 @@
+from datetime import datetime
+
 from api.permissions import IsOwnerOrReadOnly
+from django.db.models import F, Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework.backends import DjangoFilterBackend
 from rest_framework import status, viewsets
@@ -10,7 +14,8 @@ from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED,
                                    HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST)
 
 from .filters import IngredientsSearchFilter, RecipeFilter
-from .models import Favorite, Ingredient, Recipe, ShoppingCart, Tag
+from .models import (Favorite, Ingredient, IngredientRecipe, Recipe,
+                     ShoppingCart, Tag)
 from .serializers import (CompactRecipeSerializer, IngredientViewSerializer,
                           RecipeCreateSerializer, RecipeViewSerializer,
                           TagViewSerializer)
@@ -134,3 +139,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
             ).delete()
             return Response(status=HTTP_204_NO_CONTENT)
         return Response(status=HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'],
+            permission_classes=[IsAuthenticated])
+    def download_shopping_cart(self, request):
+        user = self.request.user
+        if not user.shopping_card.exists():
+            return Response(status=HTTP_400_BAD_REQUEST)
+        ingredients = IngredientRecipe.objects.filter(
+            recipe__in=(user.shopping_card.values('id'))
+        ).values(
+            ingredient=F('ingredient__name'),
+            measure=F('ingredient__measurement_unit')
+        ).annotate(amount=Sum('amount'))
+        today = datetime.today().strftime('%d-%m-%Y')
+        filename = f'{today}_shopping_list.txt'
+        shopping_list = f'Список покупок от {today}\n\n'
+        for i in ingredients:
+            shopping_list += (f'{i["ingredient"]}:'
+                              f'{i["amount"]} {i["measure"]}\n')
+        shopping_list += '\n\nЗагружено из Foodgram'
+        response = HttpResponse(
+            shopping_list, content_type='text.txt; charset=utf-8'
+        )
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+        return response
