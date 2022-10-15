@@ -13,10 +13,6 @@ services:
     volumes:
       - static_value:/app/static/
       - media_value:/app/media/
-    command: >
-      bash -c "python manage.py migrate &&
-      python manage.py collectstatic --noinput &&
-      gunicorn --bind 0:8000 foodgram.wsgi"
     depends_on:
       - db
     env_file:
