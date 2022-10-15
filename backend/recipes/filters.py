@@ -1,5 +1,5 @@
-from django_filters import CharFilter, FilterSet
 from django.db.models import IntegerField, Value
+from django_filters import CharFilter, FilterSet
 from recipes.models import Ingredient, Recipe, ShoppingCart
 
 
