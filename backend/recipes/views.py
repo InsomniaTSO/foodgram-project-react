@@ -47,15 +47,13 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """Представление модели рецептов."""
     queryset = Recipe.objects.all()
     serializer_class = RecipeCreateSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsOwnerOrReadOnly]
     pagination_class = LimitOffsetPagination
     filterset_class = RecipeFilter
 
     def get_permissions(self):
-        if self.action == 'get':
-            return [AllowAny()]
-        elif self.action == 'update':
-            return [IsOwnerOrReadOnly()]
+        if self.action == 'create':
+            return [(IsAuthenticated())]
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -94,7 +92,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer.data, status=HTTP_200_OK
         )
 
-    @action(detail=True, methods=['post', 'delete'],)
+    @action(detail=True, methods=['post', 'delete'],
+            permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=pk)
@@ -121,7 +120,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=HTTP_204_NO_CONTENT)
         return Response(status=HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post', 'delete'],)
+    @action(detail=True, methods=['post', 'delete'],
+            permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=pk)
@@ -146,7 +146,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=HTTP_204_NO_CONTENT)
         return Response(status=HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['get'],)
+    @action(detail=False, methods=['get'],
+            permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         user = self.request.user
         if not user.shopping_card.exists():
