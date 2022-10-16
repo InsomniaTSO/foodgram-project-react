@@ -52,7 +52,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
 
     def get_permissions(self):
-        if self.action == 'update':
+        if self.action == 'get':
+            return [AllowAny()]
+        elif self.action == 'update':
             return [IsOwnerOrReadOnly()]
         return super().get_permissions()
 
