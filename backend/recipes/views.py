@@ -40,15 +40,21 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagViewSerializer
     permission_classes = (AllowAny,)
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     """Представление модели рецептов."""
     queryset = Recipe.objects.all()
     serializer_class = RecipeCreateSerializer
-    permission_classes = (IsOwnerOrReadOnly,)
+    permission_classes = [IsAuthenticated]
     pagination_class = LimitOffsetPagination
     filterset_class = RecipeFilter
+
+    def get_permissions(self):
+        if self.action == 'update':
+            return [IsOwnerOrReadOnly()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -86,8 +92,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer.data, status=HTTP_200_OK
         )
 
-    @action(detail=True, methods=['post', 'delete'],
-            permission_classes=(IsAuthenticated,))
+    @action(detail=True, methods=['post', 'delete'],)
     def favorite(self, request, pk=None):
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=pk)
@@ -114,8 +119,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=HTTP_204_NO_CONTENT)
         return Response(status=HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post', 'delete'],
-            permission_classes=(IsAuthenticated,))
+    @action(detail=True, methods=['post', 'delete'],)
     def shopping_cart(self, request, pk=None):
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=pk)
@@ -140,8 +144,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return Response(status=HTTP_204_NO_CONTENT)
         return Response(status=HTTP_400_BAD_REQUEST)
 
-    @action(detail=False, methods=['get'],
-            permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=['get'],)
     def download_shopping_cart(self, request):
         user = self.request.user
         if not user.shopping_card.exists():
@@ -149,16 +152,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
         ingredients = IngredientRecipe.objects.filter(
             recipe__in=(user.shopping_card.values('id'))
         ).values(
-            ingredient=F('ingredient__name'),
-            measure=F('ingredient__measurement_unit')
-        ).annotate(amount=Sum('amount'))
+            ingredient_f=F('ingredient__name'),
+            measure_f=F('ingredient__measurement_unit')
+        ).annotate(amount_f=Sum('amount'))
         today = datetime.today().strftime('%d-%m-%Y')
         filename = f'{today}_shopping_list.txt'
         shopping_list = f'Список покупок от {today}\n\n'
         for i in ingredients:
-            shopping_list += (f'{i["ingredient"]}:'
-                              f'{i["amount"]} {i["measure"]}\n')
-        shopping_list += '\n\nЗагружено из Foodgram'
+            shopping_list += (f'{i["ingredient_f"]}:  '
+                              f'{i["amount_f"]} {i["measure_f"]}\n')
+        shopping_list += '\nЗагружено из Foodgram'
         response = HttpResponse(
             shopping_list, content_type='text.txt; charset=utf-8'
         )

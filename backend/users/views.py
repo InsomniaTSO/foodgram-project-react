@@ -51,9 +51,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(['post'], detail=False, permission_classes=(IsAuthenticated,))
     def set_password(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        self.request.user.set_password(serializer.data["new_password"])
-        self.request.user.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if serializer.is_valid():
+            self.request.user.set_password(serializer.data["new_password"])
+            self.request.user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(['get'], detail=False, permission_classes=(IsAuthenticated,))
     def subscriptions(self, request, *args, **kwargs):

@@ -4,7 +4,7 @@ from recipes.models import Ingredient, Recipe, ShoppingCart
 
 
 class RecipeFilter(FilterSet):
-    """Фильтрация рецептов."""
+    """Фильтрация рецептов по автору, тегам, избранному и списку покупок."""
     is_favorited = CharFilter(method='is_favorited_recipe')
     in_shopping_cart = CharFilter(method='is_in_shopping_cart_recipe')
 
@@ -39,7 +39,7 @@ class RecipeFilter(FilterSet):
 
 
 class IngredientsSearchFilter(FilterSet):
-    """Поиск иенгредиентов по имени."""
+    """Поиск ингредиентов по имени."""
     name = CharFilter(method='searching_by_name')
 
     class Meta:
