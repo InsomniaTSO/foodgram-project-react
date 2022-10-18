@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
 from users.models import User
 
-FORBIDDEN_NAME = 'me'
+FORBIDDEN_NAME = ('me',)
 
 
 class CustomUserSerializer(UserSerializer):
@@ -34,7 +34,8 @@ class SignupSerializer(UserCreateSerializer):
                   'password')
 
     def validate_username(self, username):
-        if FORBIDDEN_NAME == username.lower():
+        """Проверка username на присутствие в списке запрещенных имен."""
+        if username.lower() in FORBIDDEN_NAME:
             raise serializers.ValidationError(
                 f'Имя {FORBIDDEN_NAME} использовать запрещено!'
             )
@@ -55,6 +56,7 @@ class CustomTokenCreateSerializer(TokenCreateSerializer):
         self.fields['email'] = serializers.CharField(required=False)
 
     def validate(self, attrs):
+        """Проверка пароля пользователя."""
         password = attrs.get('password')
         params = {'email': attrs.get('email')}
         self.user = authenticate(

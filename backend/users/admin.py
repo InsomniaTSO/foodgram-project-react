@@ -21,7 +21,10 @@ class CustomUserChangeForm(UserChangeForm):
 
 @register(User)
 class UserAdmin(BaseUserAdmin):
-    """Класс для панели администратора пользователей."""
+    """
+    Класс для панели администратора пользователей. Исползуются
+    кастомные формы создания и редактирования пользователя.
+    """
     model = User
     add_form = CustomUserCreationForm
     form = CustomUserChangeForm
@@ -60,8 +63,10 @@ class SubscribeAdmin(admin.ModelAdmin):
 
     @display(description='Пользователь')
     def get_user(self, obj):
+        """Получение username пользователя подписавшегося на рецепт."""
         return obj.user.username
 
     @display(description='Автор')
     def get_author(self, obj):
+        """Получение username автора рецепта."""
         return obj.author.username

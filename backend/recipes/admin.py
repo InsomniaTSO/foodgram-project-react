@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.admin import display, register
+
 from recipes.models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                             ShoppingCart, Tag, TagRecipe)
 
@@ -33,6 +34,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @display(description='Число добавлений в избранное')
     def get_favorite(self, obj):
+        """Получение числа добавлений рецепта в избранное."""
         return obj.in_favorite.count()
 
 
@@ -49,10 +51,12 @@ class IngredientRecipeAdmin(admin.ModelAdmin):
 
     @display(description='Единица измерения')
     def get_measurement(self, obj):
+        """Получение единиц измерения ингредиента."""
         return obj.ingredient.measurement_unit
 
     @display(description='Рецепт')
     def get_recipe(self, obj):
+        """Получение рецепта для записи модели IngredientRecipe."""
         return f'"{obj.recipe}" -- {obj.recipe.author}'
 
 
@@ -66,15 +70,18 @@ class TagRecipeAdmin(admin.ModelAdmin):
 
     @display(description='Тег')
     def get_tag(self, obj):
+        """Получение тега для записи модели TagRecipe."""
         return obj.tag
 
     @display(description='Рецепт')
     def get_recipe(self, obj):
+        """Получение рецепта для записи модели TagRecipe."""
         return f'"{obj.recipe}" -- {obj.recipe.author}'
 
 
 @register(Favorite)
 class FavoriteAdmin(admin.ModelAdmin):
+    """Класс избранных авторов в панели администратора."""
     list_display = ('user', 'recipe',)
     list_filter = ('user', 'recipe',)
     empty_value_display = '-пусто-'
@@ -82,6 +89,7 @@ class FavoriteAdmin(admin.ModelAdmin):
 
 @register(ShoppingCart)
 class ShoppingCartAdmin(admin.ModelAdmin):
+    """Класс списка покупок в панели администратора."""
     list_display = ('user', 'recipe',)
     list_filter = ('user', 'recipe',)
     empty_value_display = '-пусто-'

@@ -1,19 +1,35 @@
-from django.core.validators import MinValueValidator
+import webcolors
+from django.core.exceptions import ValidationError
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
 from users.models import User
 
 MIN_AMOUNT = 1
+MAX_AMOUNT = 5000
 MIN_TIME = 1
+MAX_TIME = 720
 ZERO_MESSAGE = 'Не может быть нулем.'
+MAX_MESSAGE = 'Слишком большое значение.'
+WRONG_COLOR = 'Не верный код цвета.'
+
+
+def is_hex_color(value):
+    try:
+        webcolors.hex_to_name(value)
+    except ValueError:
+        raise ValidationError(WRONG_COLOR)
+    return value
 
 
 class Tag(models.Model):
     """Модель тегов."""
     id = models.AutoField(primary_key=True)
 
-    name = models.CharField('Название тега', max_length=200)
+    name = models.CharField('Название тега', max_length=200, unique=True)
 
-    color = models.CharField('Цвет', max_length=7)
+    color = models.CharField('Цвет', max_length=7, unique=True,
+                             validators=[is_hex_color])
 
     slug = models.SlugField('Уникальный слаг', max_length=200, unique=True)
 
@@ -49,18 +65,19 @@ class Recipe(models.Model):
 
     name = models.CharField('Название рецепта', max_length=200)
 
-    text = models.CharField('Описание', max_length=200)
+    text = models.CharField('Текст рецепта', max_length=2000)
 
     cooking_time = models.IntegerField('Время приготовления (в минутах)',
                                        validators=(MinValueValidator(
                                                    MIN_TIME,
-                                                   message=ZERO_MESSAGE),)
+                                                   message=ZERO_MESSAGE),
+                                                   MaxValueValidator(
+                                                   MAX_TIME,
+                                                   message=MAX_MESSAGE),)
                                        )
 
     image = models.ImageField('Картинка',
-                              upload_to='recipe/images/',
-                              null=True,
-                              default=None)
+                              upload_to='recipe/images/',)
 
     ingredients = models.ManyToManyField(
         Ingredient,
@@ -78,8 +95,7 @@ class Recipe(models.Model):
 
     author = models.ForeignKey(
         User,
-        on_delete=models.SET_NULL,
-        null=True,
+        on_delete=models.CASCADE,
         related_name='recipes',
         verbose_name='Автор',
     )
@@ -87,8 +103,6 @@ class Recipe(models.Model):
     pub_date = models.DateTimeField(
         verbose_name='Дата публикации',
         auto_now_add=True)
-
-    REQUIRED_FIELDS = ['_all_']
 
     class Meta:
         ordering = ('-pub_date',)
@@ -112,11 +126,14 @@ class IngredientRecipe(models.Model):
                                related_name='amount',
                                verbose_name='Рецепт ингредиента',)
 
-    amount = models.PositiveIntegerField(
+    amount = models.PositiveSmallIntegerField(
         'Количество',
         validators=(MinValueValidator(
                     MIN_AMOUNT,
-                    message=ZERO_MESSAGE),)
+                    message=ZERO_MESSAGE),
+                    MaxValueValidator(
+                    MAX_AMOUNT,
+                    message=MAX_MESSAGE),)
     )
 
     class Meta:

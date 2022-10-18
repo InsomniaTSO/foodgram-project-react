@@ -2,6 +2,7 @@ import base64
 
 import webcolors
 from django.core.files.base import ContentFile
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.serializers import ReadOnlyField, SerializerMethodField
 from rest_framework.validators import UniqueTogetherValidator
@@ -14,6 +15,8 @@ ALREDY_PUBLISHED = 'Вы уже публиковали этот рецепт.'
 COLOR_NAME = 'Для этого цвета нет имени.'
 EMPTY_INGREDIENTS = 'Поле "ingredients" не может быть пустым.'
 EMPTY_TAGS = 'Поле "tags" не может быть пустым.'
+ALREADY_EXIST_TAG = 'Ингредиенты не должны дублироваться.'
+ALREADY_EXIST_ING = 'Теги не должны дублироваться.'
 
 
 class Hex2NameColor(serializers.Field):
@@ -91,6 +94,7 @@ class RecipeViewSerializer(serializers.ModelSerializer):
                   )
 
     def is_favorited_recipe(self, obj):
+        """Получение boolean значения нахождения рецепта в избранном."""
         user = self.context['request'].user
         return (
             user.is_authenticated
@@ -98,6 +102,10 @@ class RecipeViewSerializer(serializers.ModelSerializer):
         )
 
     def is_in_shopping_cart_recipe(self, obj):
+        """
+        Получение boolean значения нахождения рецепта в
+        списке покупок.
+        """
         user = self.context['request'].user
         return (
             user.is_authenticated
@@ -108,6 +116,7 @@ class RecipeViewSerializer(serializers.ModelSerializer):
 class RecipeCreateSerializer(serializers.ModelSerializer):
     """Сериализатор добавления и редактирования рецептов."""
     image = Base64ImageField(required=False, allow_null=True)
+    author = CustomUserSerializer(read_only=True)
     ingredients = serializers.ListField()
     tags = serializers.ListField()
 
@@ -119,32 +128,57 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                   )
 
     def validate(self, data):
+        """
+        Проверка входящих данных на наличие полей 'ingredients' и 'tags',
+        поверка существования тегов и ингредиентов,
+        а так же рецепта с таким названием и автором.
+        """
         author = self.context.get('request').user
         name = data.get('name')
+        ingredients = data.get('ingredients')
+        tags = data.get('tags')
         recipe = Recipe.objects.filter(name=name, author=author)
         if recipe.exists() and self.context.get('request').method == 'POST':
             raise serializers.ValidationError(ALREDY_PUBLISHED)
-
         if 'ingredients' not in self.initial_data:
             raise serializers.ValidationError(EMPTY_INGREDIENTS)
         elif 'tags' not in self.initial_data:
             raise serializers.ValidationError(EMPTY_TAGS)
+        ingredient_list = []
+        tags_list = []
+        for ingredient in ingredients:
+            get_object_or_404(Ingredient, id=ingredient['id'])
+            if ingredient in ingredient_list:
+                raise serializers.ValidationError(ALREADY_EXIST_ING)
+            ingredient_list.append(ingredient)
+        for tag in tags:
+            get_object_or_404(Tag, id=int(tag))
+            if tag in tags_list:
+                raise serializers.ValidationError(ALREADY_EXIST_TAG)
+            tags_list.append(tag)
         return data
 
     def ingredients_and_tags_adding(self, recipe, ingredients, tags):
-        for ingredient in ingredients:
-            current_ingredient = Ingredient.objects.get(
-                id=ingredient['id'])
-            IngredientRecipe.objects.create(
-                ingredient=current_ingredient,
-                recipe=recipe,
-                amount=ingredient['amount'])
-        for tag in tags:
-            current_tag = Tag.objects.get(id=int(tag))
-            TagRecipe.objects.create(
-                tag=current_tag, recipe=recipe)
+        """
+        Создание записей для моделей IngredientRecipe и TagRecipe для связи
+        ингредиентов и тегов с рецептом.
+        """
+        IngredientRecipe.objects.bulk_create([IngredientRecipe(
+            ingredient=get_object_or_404(Ingredient, id=ingredient['id']),
+            recipe=recipe,
+            amount=ingredient['amount'])
+            for ingredient in ingredients])
+        TagRecipe.objects.bulk_create([TagRecipe(
+            tag=get_object_or_404(Tag, id=int(tag)),
+            recipe=recipe)
+            for tag in tags])
 
     def create(self, validated_data):
+        """
+        Создание рецепта, а затем записей для моделей IngredientRecipe
+        и TagRecipe для связи ингредиентов и тегов с рецептом.
+        Возвращает рецепт.
+        """
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
         recipe = Recipe.objects.create(**validated_data)
@@ -152,6 +186,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, recipe, validated_data):
+        """
+        Очищаеет записи IngredientRecipe и TagRecipe для редактиуемого рецепта
+        и создает новые на основе входных данных. Обновляет остальные поля
+        рецепта.
+        """
         recipe.ingredients.clear()
         recipe.tags.clear()
         ingredients = validated_data.pop('ingredients')
@@ -190,6 +229,13 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
         return True
 
     def get_recipes(self, obj):
+        """
+        Возвращет список рецептов автора из подписок.
+        Ограничивает количество рецептров в выдаче в соответствии
+        со знанением параметра 'recipes_limit' в запросе. Рецепты
+        выдаются по времени публикации (последние в начале)
+        в сокращенном виде.
+        """
         request = self.context.get('request')
         queryset = Recipe.objects.filter(author=obj.author)
         if request is not None:
@@ -199,4 +245,5 @@ class SubscriptionsSerializer(serializers.ModelSerializer):
         return CompactRecipeSerializer(queryset, many=True).data
 
     def get_recipes_count(self, obj):
+        """Возвращет общее количество рецептов автора в подписке."""
         return Recipe.objects.filter(author=obj.author).count()

@@ -47,24 +47,37 @@ class RecipeViewSet(viewsets.ModelViewSet):
     """Представление модели рецептов."""
     queryset = Recipe.objects.all()
     serializer_class = RecipeCreateSerializer
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = (IsOwnerOrReadOnly,)
     pagination_class = LimitOffsetPagination
     filterset_class = RecipeFilter
 
     def get_permissions(self):
+        """
+        Получение разрешения для метода 'create' на
+        создание рецепта авторизованным пользователем.
+        """
         if self.action == 'create':
             return [(IsAuthenticated())]
         return super().get_permissions()
 
     def get_serializer_class(self):
+        """
+        Получение сериализатора просмотра рецепта
+        RecipeViewSerializer для для безопасных методов.
+        """
         if self.request.method in SAFE_METHODS:
             return RecipeViewSerializer
         return self.serializer_class
 
     def perform_create(self, serializer):
+        """Получение данных текущего пользоваеля при создании рецепта."""
         serializer.save(author=self.request.user)
 
     def create(self, request, *args, **kwargs):
+        """
+        Создание рецепта с RecipeCreateSerializer и возвращение
+        результата с RecipeViewSerializer.
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -77,6 +90,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
                         headers=headers)
 
     def update(self, request, *args, **kwargs):
+        """
+        Редактирование рецепта с RecipeCreateSerializer и
+        возвращение результата с RecipeViewSerializer.
+        """
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(
@@ -95,6 +112,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=[IsAuthenticated])
     def favorite(self, request, pk=None):
+        """
+        Добавление рецепта в избранное методом POST и
+        удаление методом DELETE. Если рецепт уже в избранном
+        или уже удален возвращает соответствующие сообщения.
+        """
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=pk)
         if request.method == 'POST':
@@ -123,6 +145,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=[IsAuthenticated])
     def shopping_cart(self, request, pk=None):
+        """
+        Добавление рецепта в список покупок методом POST и
+        удаление методом DELETE. Если рецепт уже в в списоке
+        покупок или уже удален возвращает соответствующие сообщения.
+        """
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=pk)
         if request.method == 'POST':
@@ -149,6 +176,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'],
             permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
+        """
+        Получает название, единицы измерения и количество ингредиентов
+        из рецептов в списке покупок, в полученном результате суммирует
+        дублирующиеся ингредиенты по параметру 'amount'. Возвращает txt-файл
+        со списком ингредиентов (название, количество, единица измерения).
+        """
         user = self.request.user
         if not user.shopping_card.exists():
             return Response(status=HTTP_400_BAD_REQUEST)

@@ -1,5 +1,6 @@
 from django.db.models import IntegerField, Value
 from django_filters import CharFilter, FilterSet
+
 from recipes.models import Ingredient, Recipe, ShoppingCart
 
 
@@ -13,6 +14,11 @@ class RecipeFilter(FilterSet):
         fields = ('author', 'tags__slug', 'is_favorited', 'in_shopping_cart')
 
     def is_favorited_recipe(self, queryset, name, value):
+        """
+        Фильтрация рецептов нахождению в избранном ее автора.
+        Принимает на вход 1 или 0, при других значениях или если
+        пользоваетль не авторизован возвращает пустую выдачу.
+        """
         if not value:
             return queryset
         favorites = self.request.user.favorite.all()
@@ -25,6 +31,11 @@ class RecipeFilter(FilterSet):
         return Recipe.objects.none()
 
     def is_in_shopping_cart_recipe(self, queryset, name, value):
+        """
+        Фильтрация рецептов нахождению рецепта в списке покупок.
+        Принимает на вход 1 или 0, при других значениях или если
+        пользоваетль не авторизован возвращает пустую выдачу.
+        """
         if not value:
             return queryset
         user_shoppingcart = (ShoppingCart.objects.filter(
@@ -47,6 +58,12 @@ class IngredientsSearchFilter(FilterSet):
         fields = ('name',)
 
     def searching_by_name(self, queryset, name, value):
+        """
+        Поиск по имени. Сначала получет все ингредиенты, которые начинаются
+        с заданных в поиске символов, затем все ингредиенты содержащие эти
+        символы, исключая уже полученные на первом этапе ингредиенты.
+        Вадает суммарный результат поиска двух этапов.
+        """
         if not value:
             return queryset
         start_with = (

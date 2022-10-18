@@ -6,7 +6,7 @@ HOME_DIR = BASE_DIR.replace('backend', '')
 
 SECRET_KEY = os.getenv('SECRET_KEY', default='xxxxxxxxxx')
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 

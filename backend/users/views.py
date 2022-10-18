@@ -18,6 +18,7 @@ from users.serializers import CustomUserSerializer, SignupSerializer
 class CustomTokenCreateView(TokenCreateView):
     """Вьюсет получения токена."""
     def _action(self, serializer):
+        """Возвращает токен и статус HTTP_201_CREATED."""
         token = utils.login_user(self.request, serializer.user)
         token_serializer_class = TokenSerializer
         return Response(
@@ -34,6 +35,10 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
+        """
+        Возвращает сериализатор в зависимости от
+        используемого метода.
+        """
         if self.action == "create":
             return SignupSerializer
         elif self.action == "set_password":
@@ -44,12 +49,17 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     @action(['get'], detail=False, permission_classes=(IsAuthenticated,))
     def me(self, request, *args, **kwargs):
+        """Возвращает данные текущего пользователя."""
         user = request.user
         serializer = self.get_serializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(['post'], detail=False, permission_classes=(IsAuthenticated,))
     def set_password(self, request, *args, **kwargs):
+        """
+        Принимает старый и новый пароль и после
+        проверки задает новый пароль.
+        """
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             self.request.user.set_password(serializer.data["new_password"])
@@ -59,6 +69,7 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 
     @action(['get'], detail=False, permission_classes=(IsAuthenticated,))
     def subscriptions(self, request, *args, **kwargs):
+        """Показывает все подписки пользователя."""
         user = request.user
         subscriptions = Subscribe.objects.filter(user=user)
         serializer = self.get_serializer(subscriptions, many=True)
@@ -71,6 +82,11 @@ class CustomUserViewSet(viewsets.ModelViewSet):
     @action(['post', 'delete'], detail=True,
             permission_classes=(IsAuthenticated,))
     def subscribe(self, request, pk=None):
+        """
+        Добавляет методом POST и удалает методом DELETE
+        автора из полписок. Если полписка уже оформлена или
+        не существует выдает соответствующие сообщения.
+        """
         user = self.request.user
         author = get_object_or_404(User, pk=pk)
         if request.method == 'POST':
