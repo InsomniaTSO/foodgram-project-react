@@ -64,5 +64,5 @@ SECRET_KEY=xxxxxxxxxxxxxxxxxxxxxx # секретный ключ из settings.py
 
 ## Ссылки
 
-Проект доступен по ссылке <http://insomniatso.sytes.net/>
+Проект доступен по ссылке <http://insomniatso.sytes.net/> или <http://51.250.1.178/>
 
