@@ -1,17 +1,21 @@
 from django.db.models import IntegerField, Value
-from django_filters import CharFilter, FilterSet
+from django_filters import CharFilter, FilterSet, AllValuesMultipleFilter
 
-from recipes.models import Ingredient, Recipe, ShoppingCart
+from recipes.models import Ingredient, Recipe
 
 
 class RecipeFilter(FilterSet):
     """Фильтрация рецептов по автору, тегам, избранному и списку покупок."""
+    tags = AllValuesMultipleFilter(
+        field_name='tags__slug'
+    )
     is_favorited = CharFilter(method='is_favorited_recipe')
-    in_shopping_cart = CharFilter(method='is_in_shopping_cart_recipe')
+    is_in_shopping_cart = CharFilter(method='is_in_shopping_cart_recipe')
 
     class Meta:
         model = Recipe
-        fields = ('author', 'tags__slug', 'is_favorited', 'in_shopping_cart')
+        fields = ('author', 'tags', 'is_favorited',
+                  'is_in_shopping_cart')
 
     def is_favorited_recipe(self, queryset, name, value):
         """
@@ -19,8 +23,6 @@ class RecipeFilter(FilterSet):
         Принимает на вход 1 или 0, при других значениях или если
         пользоваетль не авторизован возвращает пустую выдачу.
         """
-        if not value:
-            return queryset
         favorites = self.request.user.favorite.all()
         if value == '1' and not self.request.user.is_anonymous:
             return queryset.filter(
@@ -36,16 +38,15 @@ class RecipeFilter(FilterSet):
         Принимает на вход 1 или 0, при других значениях или если
         пользоваетль не авторизован возвращает пустую выдачу.
         """
-        if not value:
-            return queryset
-        user_shoppingcart = (ShoppingCart.objects.filter(
-                             user=self.request.user))
+        shopping_carts = self.request.user.shopping_cart.all()
         if value == '1' and not self.request.user.is_anonymous:
             return queryset.filter(
-                pk__in=(recipe.pk for recipe in user_shoppingcart))
+                id__in=(shopping_cart.recipe.id for shopping_cart
+                        in shopping_carts))
         elif value == '0' and not self.request.user.is_anonymous:
             return queryset.exclude(
-                pk__in=(recipe.pk for recipe in user_shoppingcart))
+                id__in=(shopping_cart.recipe.id for shopping_cart
+                        in shopping_carts))
         return Recipe.objects.none()
 
 

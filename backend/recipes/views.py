@@ -120,9 +120,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         user = self.request.user
         recipe = get_object_or_404(Recipe, pk=pk)
         if request.method == 'POST':
-            if user == recipe.author:
-                return Response({'detail': SELF_FAVORITE},
-                                status=HTTP_200_OK)
             favorite, created = Favorite.objects.get_or_create(
                 user=user, recipe=recipe
             )
@@ -183,10 +180,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         со списком ингредиентов (название, количество, единица измерения).
         """
         user = self.request.user
-        if not user.shopping_card.exists():
+        if not user.shopping_cart.exists():
             return Response(status=HTTP_400_BAD_REQUEST)
         ingredients = IngredientRecipe.objects.filter(
-            recipe__in=(user.shopping_card.values('id'))
+            recipe__in=(user.shopping_cart.values('id'))
         ).values(
             ingredient_f=F('ingredient__name'),
             measure_f=F('ingredient__measurement_unit')

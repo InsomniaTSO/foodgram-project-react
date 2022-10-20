@@ -1,0 +1,14 @@
+MIN_AMOUNT = 1
+MAX_AMOUNT = 5000
+MIN_TIME = 1
+MAX_TIME = 720
+ZERO_MESSAGE = 'Не может быть нулем.'
+MAX_MESSAGE = 'Слишком большое или слишком маленькое значение.'
+WRONG_COLOR = 'Не верный код цвета.'
+ALREDY_PUBLISHED = 'Вы уже публиковали этот рецепт.'
+COLOR_NAME = 'Для этого цвета нет имени.'
+EMPTY_INGREDIENTS = 'Поле "ingredients" не может быть пустым.'
+EMPTY_TAGS = 'Поле "tags" не может быть пустым.'
+ALREADY_EXIST_ING = 'Ингредиенты не должны дублироваться.'
+ALREADY_EXIST_TAG = 'Теги не должны дублироваться.'
+FORBIDDEN_NAME = ('me',)

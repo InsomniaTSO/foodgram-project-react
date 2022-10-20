@@ -1,11 +1,12 @@
+
 from django.contrib.auth import authenticate
 from djoser.serializers import (TokenCreateSerializer, UserCreateSerializer,
                                 UserSerializer)
 from rest_framework import serializers
 from rest_framework.serializers import SerializerMethodField
-from users.models import User
 
-FORBIDDEN_NAME = ('me',)
+from api.consatants import FORBIDDEN_NAME
+from users.models import User
 
 
 class CustomUserSerializer(UserSerializer):

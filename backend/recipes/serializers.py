@@ -5,18 +5,13 @@ from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.serializers import ReadOnlyField, SerializerMethodField
-from rest_framework.validators import UniqueTogetherValidator
+
+from api.consatants import (ALREADY_EXIST_ING, ALREADY_EXIST_TAG,
+                            ALREDY_PUBLISHED, COLOR_NAME, EMPTY_INGREDIENTS,
+                            EMPTY_TAGS, MAX_AMOUNT, MAX_MESSAGE, MIN_AMOUNT)
 from users.models import Subscribe
 from users.serializers import CustomUserSerializer
-
 from .models import Ingredient, IngredientRecipe, Recipe, Tag, TagRecipe
-
-ALREDY_PUBLISHED = 'Вы уже публиковали этот рецепт.'
-COLOR_NAME = 'Для этого цвета нет имени.'
-EMPTY_INGREDIENTS = 'Поле "ingredients" не может быть пустым.'
-EMPTY_TAGS = 'Поле "tags" не может быть пустым.'
-ALREADY_EXIST_TAG = 'Ингредиенты не должны дублироваться.'
-ALREADY_EXIST_ING = 'Теги не должны дублироваться.'
 
 
 class Hex2NameColor(serializers.Field):
@@ -63,17 +58,15 @@ class IngredientViewSerializer(serializers.ModelSerializer):
 
 class IngredientRecipeViewSerializer(serializers.ModelSerializer):
     """Сериализатор ингредиентов в рецепте."""
-    amount = serializers.ReadOnlyField(source='ingredientrecipe.amount')
+    id = serializers.ReadOnlyField(source='ingredient.id')
+    name = serializers.ReadOnlyField(source='ingredient.name')
+    measurement_unit = serializers.ReadOnlyField(
+        source='ingredient.measurement_unit'
+    )
 
     class Meta:
-        model = Ingredient
+        model = IngredientRecipe
         fields = ('id', 'name', 'measurement_unit', 'amount')
-        validators = [
-            UniqueTogetherValidator(
-                queryset=IngredientRecipe.objects.all(),
-                fields=['ingredient', 'recipe']
-            )
-        ]
 
 
 class RecipeViewSerializer(serializers.ModelSerializer):
@@ -82,7 +75,8 @@ class RecipeViewSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = SerializerMethodField('is_in_shopping_cart_recipe')
     author = CustomUserSerializer(read_only=True)
     tags = TagViewSerializer(many=True, read_only=True)
-    ingredients = IngredientRecipeViewSerializer(many=True, read_only=True)
+    ingredients = IngredientRecipeViewSerializer(source='ingredients_amount',
+                                                 many=True, read_only=True,)
     image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
@@ -109,7 +103,7 @@ class RecipeViewSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         return (
             user.is_authenticated
-            and obj.in_shopping_card.filter(user=user).exists()
+            and obj.in_shopping_cart.filter(user=user).exists()
         )
 
 
@@ -135,8 +129,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         """
         author = self.context.get('request').user
         name = data.get('name')
+        cooking_time = int(data.get('cooking_time'))
         ingredients = data.get('ingredients')
         tags = data.get('tags')
+        if cooking_time < 1 or cooking_time >= 720:
+            raise serializers.ValidationError(MAX_MESSAGE)
         recipe = Recipe.objects.filter(name=name, author=author)
         if recipe.exists() and self.context.get('request').method == 'POST':
             raise serializers.ValidationError(ALREDY_PUBLISHED)
@@ -148,9 +145,13 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         tags_list = []
         for ingredient in ingredients:
             get_object_or_404(Ingredient, id=ingredient['id'])
-            if ingredient in ingredient_list:
+            id = int(ingredient['id'])
+            amount = int(ingredient['amount'])
+            if id in ingredient_list:
                 raise serializers.ValidationError(ALREADY_EXIST_ING)
-            ingredient_list.append(ingredient)
+            if amount > MAX_AMOUNT or amount < MIN_AMOUNT:
+                raise serializers.ValidationError(MAX_MESSAGE)
+            ingredient_list.append(id)
         for tag in tags:
             get_object_or_404(Tag, id=int(tag))
             if tag in tags_list:

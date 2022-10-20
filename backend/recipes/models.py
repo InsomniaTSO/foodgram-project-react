@@ -3,15 +3,9 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from api.consatants import (MAX_AMOUNT, MAX_MESSAGE, MAX_TIME, MIN_AMOUNT,
+                            MIN_TIME, WRONG_COLOR, ZERO_MESSAGE)
 from users.models import User
-
-MIN_AMOUNT = 1
-MAX_AMOUNT = 5000
-MIN_TIME = 1
-MAX_TIME = 720
-ZERO_MESSAGE = 'Не может быть нулем.'
-MAX_MESSAGE = 'Слишком большое значение.'
-WRONG_COLOR = 'Не верный код цвета.'
 
 
 def is_hex_color(value):
@@ -118,12 +112,12 @@ class IngredientRecipe(models.Model):
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
-        related_name='amount',
+        related_name='ingredients_amount',
         verbose_name='Ингредиент в рецепте',
     )
 
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE,
-                               related_name='amount',
+                               related_name='ingredients_amount',
                                verbose_name='Рецепт ингредиента',)
 
     amount = models.PositiveSmallIntegerField(
@@ -137,6 +131,10 @@ class IngredientRecipe(models.Model):
     )
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['recipe', 'ingredient'],
+                                    name='recipe_ingredient'),
+        ]
         verbose_name = 'Ингредиент в рецепте'
         verbose_name_plural = 'Ингредиенты в рецепте'
 
@@ -150,6 +148,10 @@ class TagRecipe(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['recipe', 'tag'],
+                                    name='recipe_tag'),
+        ]
         verbose_name = 'Тэг в рецепте'
         verbose_name_plural = 'Тэги в рецепте'
 
@@ -162,14 +164,14 @@ class ShoppingCart(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='shopping_card',
+        related_name='shopping_cart',
         verbose_name='Пользователь',
     )
 
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        related_name='in_shopping_card',
+        related_name='in_shopping_cart',
         verbose_name='Рецепт',
     )
 
