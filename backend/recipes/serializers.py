@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from rest_framework.serializers import ReadOnlyField, SerializerMethodField
 
-from api.consatants import (ALREADY_EXIST_ING, ALREADY_EXIST_TAG,
+from api.consatants import (ALREADY_EXIST_ING, ALREADY_EXIST_TAG, NOT_NAMBER,
                             ALREDY_PUBLISHED, COLOR_NAME, EMPTY_INGREDIENTS,
                             EMPTY_TAGS, MAX_AMOUNT, MAX_MESSAGE, MIN_AMOUNT)
 from users.models import Subscribe
@@ -56,7 +56,7 @@ class IngredientViewSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit')
 
 
-class IngredientRecipeViewSerializer(serializers.ModelSerializer):
+class IngredientRecipeSerializer(serializers.ModelSerializer):
     """Сериализатор ингредиентов в рецепте."""
     id = serializers.ReadOnlyField(source='ingredient.id')
     name = serializers.ReadOnlyField(source='ingredient.name')
@@ -67,6 +67,12 @@ class IngredientRecipeViewSerializer(serializers.ModelSerializer):
     class Meta:
         model = IngredientRecipe
         fields = ('id', 'name', 'measurement_unit', 'amount')
+        validators = [
+            serializers.UniqueTogetherValidator(
+                queryset=IngredientRecipe.objects.all(),
+                fields=['ingredient', 'recipe']
+            )
+        ]
 
 
 class RecipeViewSerializer(serializers.ModelSerializer):
@@ -75,8 +81,8 @@ class RecipeViewSerializer(serializers.ModelSerializer):
     is_in_shopping_cart = SerializerMethodField('is_in_shopping_cart_recipe')
     author = CustomUserSerializer(read_only=True)
     tags = TagViewSerializer(many=True, read_only=True)
-    ingredients = IngredientRecipeViewSerializer(source='ingredients_amount',
-                                                 many=True, read_only=True,)
+    ingredients = IngredientRecipeSerializer(source='ingredients_amount',
+                                             many=True, read_only=True,)
     image = Base64ImageField(required=False, allow_null=True)
 
     class Meta:
@@ -103,7 +109,7 @@ class RecipeViewSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         return (
             user.is_authenticated
-            and obj.in_shopping_cart.filter(user=user).exists()
+            and obj.shopping_cart.filter(user=user).exists()
         )
 
 
@@ -111,8 +117,9 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     """Сериализатор добавления и редактирования рецептов."""
     image = Base64ImageField(required=False, allow_null=True)
     author = CustomUserSerializer(read_only=True)
-    ingredients = serializers.ListField()
-    tags = serializers.ListField()
+    ingredients = IngredientRecipeSerializer(source='ingredients_amount',
+                                             many=True, read_only=True)
+    tags = serializers.ListField(child=serializers.IntegerField())
 
     class Meta:
         model = Recipe
@@ -128,11 +135,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         а так же рецепта с таким названием и автором.
         """
         author = self.context.get('request').user
-        name = data.get('name')
-        cooking_time = int(data.get('cooking_time'))
-        ingredients = data.get('ingredients')
-        tags = data.get('tags')
-        if cooking_time < 1 or cooking_time >= 720:
+        name = self.initial_data.get('name')
+        cooking_time = self.initial_data.get('cooking_time')
+        ingredients = self.initial_data.get('ingredients')
+        tags = self.initial_data.get('tags')
+        if int(cooking_time) < 1 or int(cooking_time) >= 720:
             raise serializers.ValidationError(MAX_MESSAGE)
         recipe = Recipe.objects.filter(name=name, author=author)
         if recipe.exists() and self.context.get('request').method == 'POST':
@@ -146,7 +153,10 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         for ingredient in ingredients:
             get_object_or_404(Ingredient, id=ingredient['id'])
             id = int(ingredient['id'])
-            amount = int(ingredient['amount'])
+            try:
+                amount = int(ingredient['amount'])
+            except ValueError:
+                raise serializers.ValidationError(NOT_NAMBER)
             if id in ingredient_list:
                 raise serializers.ValidationError(ALREADY_EXIST_ING)
             if amount > MAX_AMOUNT or amount < MIN_AMOUNT:
@@ -157,6 +167,10 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
             if tag in tags_list:
                 raise serializers.ValidationError(ALREADY_EXIST_TAG)
             tags_list.append(tag)
+        data['ingredients'] = ingredients
+        data['tags'] = tags
+        data['name'] = name
+        data['cooking_time'] = cooking_time
         return data
 
     def ingredients_and_tags_adding(self, recipe, ingredients, tags):

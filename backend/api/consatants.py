@@ -12,3 +12,4 @@ EMPTY_TAGS = 'Поле "tags" не может быть пустым.'
 ALREADY_EXIST_ING = 'Ингредиенты не должны дублироваться.'
 ALREADY_EXIST_TAG = 'Теги не должны дублироваться.'
 FORBIDDEN_NAME = ('me',)
+NOT_NAMBER = 'Количество должно быть числом.'

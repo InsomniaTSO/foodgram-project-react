@@ -1,18 +1,19 @@
 from datetime import datetime
 
-from api.permissions import IsOwnerOrReadOnly
+
 from django.db.models import F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework.backends import DjangoFilterBackend
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED,
                                    HTTP_204_NO_CONTENT, HTTP_400_BAD_REQUEST)
 
+from api.permissions import IsOwnerOrReadOnly
+from api.pagination import LimitPageNumberPagination
 from .filters import IngredientsSearchFilter, RecipeFilter
 from .models import (Favorite, Ingredient, IngredientRecipe, Recipe,
                      ShoppingCart, Tag)
@@ -48,7 +49,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     serializer_class = RecipeCreateSerializer
     permission_classes = (IsOwnerOrReadOnly,)
-    pagination_class = LimitOffsetPagination
+    pagination_class = LimitPageNumberPagination
     filterset_class = RecipeFilter
 
     def get_permissions(self):
@@ -183,7 +184,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if not user.shopping_cart.exists():
             return Response(status=HTTP_400_BAD_REQUEST)
         ingredients = IngredientRecipe.objects.filter(
-            recipe__in=(user.shopping_cart.values('id'))
+            recipe__shopping_cart__user=request.user
         ).values(
             ingredient_f=F('ingredient__name'),
             measure_f=F('ingredient__measurement_unit')
