@@ -7,8 +7,8 @@ from rest_framework import serializers
 from rest_framework.serializers import ReadOnlyField, SerializerMethodField
 
 from api.consatants import (ALREADY_EXIST_ING, ALREADY_EXIST_TAG, NOT_NAMBER,
-                            ALREDY_PUBLISHED, COLOR_NAME, EMPTY_INGREDIENTS,
-                            EMPTY_TAGS, MAX_AMOUNT, MAX_MESSAGE, MIN_AMOUNT)
+                            ALREDY_PUBLISHED, COLOR_NAME, MAX_AMOUNT,
+                            MAX_MESSAGE, MIN_AMOUNT)
 from users.models import Subscribe
 from users.serializers import CustomUserSerializer
 from .models import Ingredient, IngredientRecipe, Recipe, Tag, TagRecipe
@@ -130,8 +130,7 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """
-        Проверка входящих данных на наличие полей 'ingredients' и 'tags',
-        поверка существования тегов и ингредиентов,
+        Проверка тегов и ингредиентов,
         а так же рецепта с таким названием и автором.
         """
         author = self.context.get('request').user
@@ -144,10 +143,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.filter(name=name, author=author)
         if recipe.exists() and self.context.get('request').method == 'POST':
             raise serializers.ValidationError(ALREDY_PUBLISHED)
-        if 'ingredients' not in self.initial_data:
-            raise serializers.ValidationError(EMPTY_INGREDIENTS)
-        elif 'tags' not in self.initial_data:
-            raise serializers.ValidationError(EMPTY_TAGS)
         ingredient_list = []
         tags_list = []
         for ingredient in ingredients:
